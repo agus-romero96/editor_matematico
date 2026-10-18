@@ -166,6 +166,53 @@ class DocumentoMatematico:
         self._bloques: List[BloqueDocumento] = list(bloques) if bloques else []
         self.modificado: bool = False
         self.ruta_archivo: Optional[str] = None
+        self._pila_deshacer: List[List[BloqueDocumento]] = []
+        self._pila_rehacer: List[List[BloqueDocumento]] = []
+
+    def _guardar_instantanea(self) -> None:
+        copia = [
+            BloqueDocumento(
+                tipo=b.tipo,
+                contenido=b.contenido,
+                comentario=b.comentario,
+                subtipo=b.subtipo,
+            )
+            for b in self._bloques
+        ]
+        self._pila_deshacer.append(copia)
+        if len(self._pila_deshacer) > 50:
+            self._pila_deshacer.pop(0)
+        self._pila_rehacer.clear()
+
+    def puede_deshacer(self) -> bool:
+        return bool(self._pila_deshacer)
+
+    def puede_rehacer(self) -> bool:
+        return bool(self._pila_rehacer)
+
+    def deshacer(self) -> bool:
+        if not self._pila_deshacer:
+            return False
+        actual = [
+            BloqueDocumento(tipo=b.tipo, contenido=b.contenido, comentario=b.comentario, subtipo=b.subtipo)
+            for b in self._bloques
+        ]
+        self._pila_rehacer.append(actual)
+        self._bloques = self._pila_deshacer.pop()
+        self.modificado = True
+        return True
+
+    def rehacer(self) -> bool:
+        if not self._pila_rehacer:
+            return False
+        actual = [
+            BloqueDocumento(tipo=b.tipo, contenido=b.contenido, comentario=b.comentario, subtipo=b.subtipo)
+            for b in self._bloques
+        ]
+        self._pila_deshacer.append(actual)
+        self._bloques = self._pila_rehacer.pop()
+        self.modificado = True
+        return True
 
     def __len__(self) -> int:
         return len(self._bloques)
@@ -185,6 +232,7 @@ class DocumentoMatematico:
         indice: Optional[int] = None,
     ) -> BloqueDocumento:
         bloque = BloqueDocumento(tipo=tipo, contenido=contenido, comentario=comentario, subtipo=subtipo)
+        self._guardar_instantanea()
         if indice is None or indice >= len(self._bloques):
             self._bloques.append(bloque)
         else:
@@ -219,17 +267,21 @@ class DocumentoMatematico:
         subtipo: Optional[str] = None,
     ) -> BloqueDocumento:
         actual = self._bloques[indice]
+        nuevo_tipo = tipo if tipo is not None else actual.tipo
+        nuevo_subtipo = subtipo if subtipo is not None else (actual.subtipo if nuevo_tipo == actual.tipo else "")
         nuevo = BloqueDocumento(
-            tipo=tipo if tipo is not None else actual.tipo,
+            tipo=nuevo_tipo,
             contenido=contenido if contenido is not None else actual.contenido,
             comentario=comentario if comentario is not None else actual.comentario,
-            subtipo=subtipo if subtipo is not None else actual.subtipo,
+            subtipo=nuevo_subtipo,
         )
+        self._guardar_instantanea()
         self._bloques[indice] = nuevo
         self.modificado = True
         return nuevo
 
     def eliminar(self, indice: int) -> BloqueDocumento:
+        self._guardar_instantanea()
         eliminado = self._bloques.pop(indice)
         self.modificado = True
         return eliminado
@@ -240,6 +292,7 @@ class DocumentoMatematico:
         destino = max(0, min(len(self._bloques) - 1, destino))
         if origen == destino:
             return origen
+        self._guardar_instantanea()
         bloque = self._bloques.pop(origen)
         self._bloques.insert(destino, bloque)
         self.modificado = True
@@ -256,6 +309,8 @@ class DocumentoMatematico:
         )
 
     def limpiar(self) -> None:
+        if self._bloques:
+            self._guardar_instantanea()
         self._bloques.clear()
         self.modificado = True
 

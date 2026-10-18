@@ -40,7 +40,9 @@ from parser_matematico import (
     TransformadaLaplace,
 )
 from verbalizador import (
+    NOMBRES_FUNCIONES,
     _es_raiz,
+    _extraer_negativo,
     _separar_fraccion_sin_evaluar,
     texto_lineal,
 )
@@ -205,6 +207,28 @@ def omml_de_objeto(expr: Any) -> str:
     if isinstance(expr, sympy.MatrixBase):
         return _omml_matriz(expr, abre="[", cierra="]")
 
+    if isinstance(expr, EvaluacionBarrow):
+        f, x, a, b = expr.args
+        corchete = f"<m:d><m:dPr><m:begChr m:val=\"[\"/><m:endChr m:val=\"]\"/></m:dPr><m:e>{omml_de_objeto(f)}</m:e></m:d>"
+        return (
+            f"<m:sSubSup><m:e>{corchete}</m:e>"
+            f"<m:sub>{omml_de_objeto(x)}{_omml_run('=')}{omml_de_objeto(a)}</m:sub>"
+            f"<m:sup>{omml_de_objeto(b)}</m:sup></m:sSubSup>"
+        )
+
+    if isinstance(expr, TransformadaLaplace):
+        f, _, s = expr.args
+        llave = f"<m:d><m:dPr><m:begChr m:val=\"{{\"/><m:endChr m:val=\"}}\"/></m:dPr><m:e>{omml_de_objeto(f)}</m:e></m:d>"
+        arg_s = f"<m:d><m:e>{omml_de_objeto(s)}</m:e></m:d>"
+        return f"{_omml_run('L')}{llave}{arg_s}"
+
+    if isinstance(expr, TransformadaInversaLaplace):
+        F, _, t = expr.args
+        l_inv = f"<m:sSup><m:e>{_omml_run('L')}</m:e><m:sup>{_omml_run('-1')}</m:sup></m:sSup>"
+        llave = f"<m:d><m:dPr><m:begChr m:val=\"{{\"/><m:endChr m:val=\"}}\"/></m:dPr><m:e>{omml_de_objeto(F)}</m:e></m:d>"
+        arg_t = f"<m:d><m:e>{omml_de_objeto(t)}</m:e></m:d>"
+        return f"{l_inv}{llave}{arg_t}"
+
     if isinstance(expr, Relational):
         ops = {
             sympy.Eq: "=",
@@ -294,21 +318,49 @@ def omml_de_objeto(expr: Any) -> str:
     if isinstance(expr, sympy.exp):
         return f"<m:sSup><m:e>{_omml_run('e')}</m:e><m:sup>{omml_de_objeto(expr.args[0])}</m:sup></m:sSup>"
 
+    if isinstance(expr, sympy.log):
+        if len(expr.args) == 2:
+            arg, base = expr.args
+            return f"<m:sSub><m:e>{_omml_run('log')}</m:e><m:sub>{omml_de_objeto(base)}</m:sub></m:sSub><m:d><m:e>{omml_de_objeto(arg)}</m:e></m:d>"
+        return f"{_omml_run('ln')}<m:d><m:e>{omml_de_objeto(expr.args[0])}</m:e></m:d>"
+
+    if isinstance(expr, sympy.factorial):
+        arg = expr.args[0]
+        arg_omml = f"<m:d><m:e>{omml_de_objeto(arg)}</m:e></m:d>" if isinstance(arg, (sympy.Add, sympy.Mul)) else omml_de_objeto(arg)
+        return f"{arg_omml}{_omml_run('!')}"
+
     if isinstance(expr, sympy.Abs):
         return f"<m:d><m:dPr><m:begChr m:val=\"|\"/><m:endChr m:val=\"|\"/></m:dPr><m:e>{omml_de_objeto(expr.args[0])}</m:e></m:d>"
+
+    for clase_fn in NOMBRES_FUNCIONES:
+        if isinstance(expr, clase_fn):
+            return f"{_omml_run(expr.func.__name__)}<m:d><m:e>{omml_de_objeto(expr.args[0])}</m:e></m:d>"
+
+    if isinstance(expr, AppliedUndef):
+        args_omml = _omml_run(", ").join(omml_de_objeto(a) for a in expr.args)
+        return f"{_omml_run(expr.func.__name__)}<m:d><m:e>{args_omml}</m:e></m:d>"
 
     if isinstance(expr, sympy.Add):
         partes = []
         for idx, t in enumerate(expr.args):
-            txt_t = texto_lineal(t)
-            if idx > 0 and not txt_t.startswith("-"):
+            neg = _extraer_negativo(t)
+            if idx == 0:
+                partes.append(omml_de_objeto(t))
+            elif neg is not None:
+                partes.append(_omml_run("-"))
+                partes.append(omml_de_objeto(neg))
+            else:
                 partes.append(_omml_run("+"))
-            partes.append(omml_de_objeto(t))
+                partes.append(omml_de_objeto(t))
         return "".join(partes)
 
     if isinstance(expr, sympy.Mul):
+        factores = list(expr.args)
+        if factores and factores[0] == -1:
+            resto = sympy.Mul(*factores[1:], evaluate=False) if len(factores) > 2 else factores[1]
+            return f"{_omml_run('-')}{omml_de_objeto(resto)}"
         partes_mul = []
-        for f in expr.args:
+        for f in factores:
             if isinstance(f, sympy.Add):
                 partes_mul.append(f"<m:d><m:e>{omml_de_objeto(f)}</m:e></m:d>")
             else:

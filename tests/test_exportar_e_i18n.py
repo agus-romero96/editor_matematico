@@ -38,7 +38,10 @@ class TestExportarAsistentesEI18n(unittest.TestCase):
     def test_exportar_docx_omml_y_todos_los_formatos(self):
         doc = DocumentoMatematico("Examen de Cálculo", "Agustin Romero")
         doc.agregar_texto("Problema 1")
-        doc.agregar_expresion("int(x^2, x, 0, 1) = 1/3", comentario="Regla de Barrow")
+        doc.agregar_expresion("int(x^2, x, 0, 1) = barrow(x^3/3, x, 0, 1)", comentario="Regla de Barrow")
+        doc.agregar_expresion("laplace(exp(2*t), t, s) = 1/(s - 2)")
+        doc.agregar_expresion("ilaplace(1/(s - 2), s, t) = exp(2*t)")
+        doc.agregar_expresion("sin(x) - 2*ln(x) + factorial(n) = 0")
         doc.agregar_sistema(["x + y = 10", "x - y = 2"])
         doc.agregar_matriz("1 2\n3 4", es_determinante=True)
 
@@ -52,6 +55,9 @@ class TestExportarAsistentesEI18n(unittest.TestCase):
             xml_word = zf.read("word/document.xml").decode("utf-8")
             self.assertIn("<m:oMathPara>", xml_word)
             self.assertIn("<m:nary>", xml_word)
+            self.assertIn("<m:sSubSup>", xml_word)
+            self.assertNotIn("barrow(", xml_word)
+            self.assertNotIn("laplace(", xml_word)
             ET.fromstring(xml_word)
 
     def test_todos_los_asistentes_construyen_bloques_validos(self):

@@ -206,8 +206,6 @@ class ParserMatematico:
     def _construir_derivada(self, expr: Any, var: Any = None, orden: Any = 1):
         v = self.simbolo(var) if var is not None else self.simbolo("x")
         n = int(orden) if orden is not None else 1
-        if n <= 1:
-            return sympy.Derivative(expr, v, evaluate=False)
         return sympy.Derivative(expr, (v, n), evaluate=False)
 
     def _construir_integral(self, expr: Any, var: Any = None, inferior: Any = None, superior: Any = None):
@@ -240,6 +238,61 @@ class ParserMatematico:
         t = self.simbolo(var_destino) if var_destino is not None else self.simbolo("t")
         return TransformadaInversaLaplace(expr, s, t)
 
+    @staticmethod
+    def _detectar_indep(txt: str) -> str:
+        """Determina si la variable independiente implícita es 't' o 'x' buscando identificadores aislados."""
+        tokens = set(re.findall(r"\b[a-zA-Z]+\b", txt.lower()))
+        return "t" if ("t" in tokens and "x" not in tokens) else "x"
+
+    @staticmethod
+    def _normalizar_limites_laterales(txt: str) -> str:
+        """Convierte lim(expr, var, tend+) o lim(expr, var, tend-) en lim(expr, var, tend, '+/-') respetando paréntesis."""
+        patron = re.compile(r"\blim\s*\(", re.IGNORECASE)
+        pos = 0
+        partes_salida = []
+        while True:
+            m = patron.search(txt, pos)
+            if not m:
+                partes_salida.append(txt[pos:])
+                break
+            partes_salida.append(txt[pos:m.start()])
+            inicio_args = m.end()
+            nivel = 1
+            j = inicio_args
+            args = []
+            inicio_arg = inicio_args
+            while j < len(txt) and nivel > 0:
+                c = txt[j]
+                if c in "([{":
+                    nivel += 1
+                elif c in ")]}":
+                    nivel -= 1
+                    if nivel == 0:
+                        args.append(txt[inicio_arg:j])
+                        break
+                elif c == "," and nivel == 1:
+                    args.append(txt[inicio_arg:j])
+                    inicio_arg = j + 1
+                j += 1
+
+            if nivel == 0 and len(args) == 3:
+                tend = args[2].strip()
+                if tend.endswith("+") and len(tend) > 1 and not tend.endswith(("'+", "\"+")):
+                    reemplazo = f"lim({args[0]}, {args[1]}, {tend[:-1]}, '+')"
+                    partes_salida.append(reemplazo)
+                    pos = j + 1
+                    continue
+                if tend.endswith("-") and len(tend) > 1 and tend.lower() not in ("-oo", "-inf", "-infinito", "-infinity") and not tend.endswith(("'-", "\"-")):
+                    reemplazo = f"lim({args[0]}, {args[1]}, {tend[:-1]}, '-')"
+                    partes_salida.append(reemplazo)
+                    pos = j + 1
+                    continue
+
+            partes_salida.append(txt[m.start():m.end()])
+            pos = m.end()
+
+        return "".join(partes_salida)
+
     def _preprocesar_derivadas(self, txt: str, indep_forzada: Optional[str] = None) -> Tuple[str, dict]:
         locales_extra = {}
 
@@ -248,18 +301,23 @@ class ParserMatematico:
             dep = m.group(2).lower()
             indep = m.group(3).lower()
             orden_den = m.group(4)
+            if orden_num and orden_den and orden_num != orden_den:
+                raise ValueError(
+                    tr("El orden de la derivada en el numerador ({n1}) y en el denominador ({n2}) no coincide.",
+                       n1=orden_num, n2=orden_den)
+                )
             n = int(orden_num or orden_den or "1")
             clave = f"deriv_{n}_{dep}_{indep}"
             x_sym = self.simbolo(indep)
             y_fn = sympy.Function(dep)(x_sym)
             locales_extra[clave] = (
                 sympy.Derivative(y_fn, x_sym, evaluate=False)
-                if n == 1 else sympy.Derivative(y_fn, (x_sym, n), evaluate=False)
+                if n == 1 else sympy.Derivative(y_fn, *([x_sym] * n), evaluate=False)
             )
             return f" {clave} "
 
         txt_proc = _PATRON_DY_DX.sub(_reemplazar_leibniz, txt)
-        indep_defecto = indep_forzada or ("t" if ("t" in txt_proc and "x" not in txt_proc) else "x")
+        indep_defecto = indep_forzada or self._detectar_indep(txt_proc)
 
         def _reemplazar_prima(m: re.Match) -> str:
             dep = m.group(1).lower()
@@ -269,7 +327,7 @@ class ParserMatematico:
             y_fn = sympy.Function(dep)(x_sym)
             locales_extra[clave] = (
                 sympy.Derivative(y_fn, x_sym, evaluate=False)
-                if n == 1 else sympy.Derivative(y_fn, (x_sym, n), evaluate=False)
+                if n == 1 else sympy.Derivative(y_fn, *([x_sym] * n), evaluate=False)
             )
             return f"{clave}"
 
@@ -295,7 +353,7 @@ class ParserMatematico:
             izq_txt, op, der_txt = relacion
             if not izq_txt.strip() or not der_txt.strip():
                 raise ValueError(tr("Falta uno de los dos lados de la relación '{op}'.", op=op))
-            indep = "t" if ("t" in texto_limpio.lower() and "x" not in texto_limpio.lower()) else "x"
+            indep = self._detectar_indep(texto_limpio)
             izq = self._parsear_expresion_simple(izq_txt, indep_forzada=indep)
             der = self._parsear_expresion_simple(der_txt, indep_forzada=indep)
             constructores = {
@@ -315,13 +373,7 @@ class ParserMatematico:
         return self._parsear_expresion_simple(texto_limpio)
 
     def _parsear_expresion_simple(self, expresion: str, indep_forzada: Optional[str] = None) -> Any:
-        txt = expresion.strip()
-        txt = re.sub(
-            r"\blim\s*\(([^,]+),\s*([^,]+),\s*([+-]?\d+(?:\.\d+)?|\w+)\s*([+-])\s*\)",
-            r"lim(\1, \2, \3, '\4')",
-            txt,
-            flags=re.IGNORECASE,
-        )
+        txt = self._normalizar_limites_laterales(expresion.strip())
         txt_min = txt.lower()
         txt_proc, locales_extra = self._preprocesar_derivadas(txt_min, indep_forzada=indep_forzada)
         contexto_actual = {**self.contexto, **locales_extra}
@@ -373,6 +425,42 @@ class ParserMatematico:
         pos, op = encontrados[0]
         return texto[:pos], op, texto[pos + len(op):]
 
+    @staticmethod
+    def _dividir_celdas_fila(linea: str) -> list[str]:
+        """Divide una fila de matriz por comas o espacios de nivel cero (fuera de paréntesis)."""
+        nivel = 0
+        tiene_coma_nivel_cero = False
+        for c in linea:
+            if c in "([{":
+                nivel += 1
+            elif c in ")]}":
+                nivel = max(0, nivel - 1)
+            elif c == "," and nivel == 0:
+                tiene_coma_nivel_cero = True
+                break
+
+        celdas = []
+        actual = []
+        nivel = 0
+        for c in linea:
+            if c in "([{":
+                nivel += 1
+                actual.append(c)
+            elif c in ")]}":
+                nivel = max(0, nivel - 1)
+                actual.append(c)
+            elif nivel == 0 and ((tiene_coma_nivel_cero and c == ",") or (not tiene_coma_nivel_cero and c.isspace())):
+                txt_celda = "".join(actual).strip()
+                if txt_celda:
+                    celdas.append(txt_celda)
+                actual = []
+            else:
+                actual.append(c)
+        txt_final = "".join(actual).strip()
+        if txt_final:
+            celdas.append(txt_final)
+        return celdas
+
     def parsear_matriz(self, texto: str) -> sympy.Matrix:
         limpio = texto.strip()
         if not limpio:
@@ -389,7 +477,7 @@ class ParserMatematico:
         filas = []
         columnas_esperadas = None
         for idx, linea in enumerate(lineas, 1):
-            partes = [p.strip() for p in (linea.split(",") if "," in linea else linea.split()) if p.strip()]
+            partes = self._dividir_celdas_fila(linea)
             if not partes:
                 continue
             if columnas_esperadas is None:

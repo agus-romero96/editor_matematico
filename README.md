@@ -35,8 +35,12 @@ Cubre todas las áreas de la versión 1.7.0 de [`calculadora_accesible`](https:/
 | :--- | :--- |
 | `Ctrl+Enter` | Agregar el paso escrito al documento |
 | `Ctrl+U` | Actualizar el paso seleccionado en la lista |
+| `F3` / `Enter` | Cargar el paso seleccionado en el cuadro de edición |
+| `F4` | **Escuchar lectura previa** de la expresión escrita sin agregarla |
+| `Ctrl+Shift+A` | Duplicar el paso seleccionado |
+| `Ctrl+Z` / `Ctrl+Y` | Deshacer / Rehacer cambios en los pasos del documento |
 | `Alt+Flecha Arriba` / `Alt+Flecha Abajo` | Mover el paso seleccionado arriba o abajo |
-| `Suprimir` | Eliminar el paso seleccionado |
+| `Suprimir` | Eliminar el paso seleccionado (en la lista de pasos) |
 | `F2` | **Inspeccionar estructura** de la fórmula actual en árbol |
 | `F5` | **Verificar paso actual** respecto al paso matemático anterior |
 | `Ctrl+Shift+V` | **Verificar todos los pasos** del documento |
@@ -57,7 +61,7 @@ Cubre todas las áreas de la versión 1.7.0 de [`calculadora_accesible`](https:/
 | `Ctrl+Shift+R` | Asistente: Insertar ecuación diferencial (EDO) o PVI |
 | `Ctrl+Shift+L` | Asistente: Insertar transformada de Laplace |
 | `Ctrl+Shift+U` | Asistente: Insertar transformada inversa de Laplace |
-| `Ctrl+N` / `Ctrl+O` / `Ctrl+S` | Nuevo / Abrir (`.ema`) / Guardar (`.ema`) |
+| `Ctrl+N` / `Ctrl+O` / `Ctrl+S` / `Ctrl+Shift+S` | Nuevo / Abrir (`.ema`) / Guardar / Guardar como |
 | `Ctrl+E` | Exportar a Word (`.docx`), HTML+MathML, LaTeX, Markdown o Texto |
 | `Ctrl+Shift+C` | Copiar lectura accesible del paso actual |
 | `Ctrl+Alt+L` / `Ctrl+Alt+M` | Copiar paso actual como LaTeX / como MathML |

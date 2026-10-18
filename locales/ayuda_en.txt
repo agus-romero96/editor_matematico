@@ -17,9 +17,13 @@ USER MANUAL: ACCESSIBLE MATH EDITOR 1.0.0
 3. MAIN NAVIGATION AND EDITING SHORTCUTS
    [Ctrl + Enter]     : Add the current step to the document list.
    [Ctrl + U]         : Update the selected step with the current input.
+   [F3 / Enter]       : Load the selected step into the edit box.
+   [F4]               : Listen to preview reading of the typed expression.
+   [Ctrl + Shift + A] : Duplicate the selected step.
+   [Ctrl + Z / Y]     : Undo / Redo changes to document steps.
    [Alt + Up Arrow]   : Move the selected step up.
    [Alt + Down Arrow] : Move the selected step down.
-   [Delete]           : Delete the selected step.
+   [Delete]           : Delete the selected step (when the step list is focused).
    [F2]               : INSPECT STRUCTURE (opens a navigable tree to explore
                         numerator, denominator, root index, radicand, exponent,
                         integration bounds, or matrix cells with arrow keys).

@@ -53,6 +53,28 @@ class TestDocumentoYVerificador(unittest.TestCase):
         doc_mat.agregar_matriz("1 0 6\n0 1 4")
         self.assertTrue(verificador.verificar_en_documento(doc_mat, 1).es_valido)
 
+    def test_deshacer_rehacer_subtipo_y_pvi(self):
+        doc = DocumentoMatematico()
+        doc.agregar_matriz("1 2\n3 4", es_determinante=True)
+        self.assertEqual(doc.obtener(0).subtipo, "determinante")
+        doc.actualizar(0, contenido="1 2\n0 4")
+        self.assertEqual(doc.obtener(0).subtipo, "determinante")
+
+        doc.eliminar(0)
+        self.assertEqual(len(doc), 0)
+        self.assertTrue(doc.deshacer())
+        self.assertEqual(len(doc), 1)
+        self.assertTrue(doc.rehacer())
+        self.assertEqual(len(doc), 0)
+
+        doc_pvi = DocumentoMatematico()
+        doc_pvi.agregar_sistema(["y' = 2*x*y", "y(0) = 3"])
+        doc_pvi.agregar_expresion("y = 3*exp(x^2)")
+        self.assertTrue(verificador.verificar_en_documento(doc_pvi, 1).es_valido)
+
+        doc_pvi.agregar_expresion("y = 5*exp(x^2)")
+        self.assertFalse(verificador.verificar_en_documento(doc_pvi, 2).es_valido)
+
 
 if __name__ == "__main__":
     unittest.main()

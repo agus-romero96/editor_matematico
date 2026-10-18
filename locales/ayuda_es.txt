@@ -17,9 +17,13 @@ MANUAL DE USUARIO: EDITOR MATEMÁTICO ACCESIBLE 1.0.0
 3. ATAJOS PRINCIPALES DE NAVEGACIÓN Y EDICIÓN
    [Ctrl + Enter]     : Agregar el paso escrito a la lista del documento.
    [Ctrl + U]         : Actualizar el paso seleccionado con lo escrito abajo.
+   [F3 / Enter]       : Cargar el paso seleccionado en el cuadro de edición.
+   [F4]               : Escuchar lectura previa de la expresión escrita sin agregarla.
+   [Ctrl + Mayús + A] : Duplicar el paso seleccionado.
+   [Ctrl + Z / Y]     : Deshacer / Rehacer cambios en los pasos del documento.
    [Alt + Flecha Arr] : Subir el paso seleccionado una posición.
    [Alt + Flecha Abj] : Bajar el paso seleccionado una posición.
-   [Suprimir]         : Eliminar el paso seleccionado.
+   [Suprimir]         : Eliminar el paso seleccionado (con el foco en la lista).
    [F2]               : INSPECCIONAR ESTRUCTURA (abre un árbol navegable con flechas
                         para revisar numerador, denominador, índice, radicando,
                         exponente, límites de integración o celdas de matriz).

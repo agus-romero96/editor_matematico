@@ -80,6 +80,34 @@ def texto_lineal(expr: Any) -> str:
     if isinstance(expr, TransformadaInversaLaplace):
         F, s, t = expr.args
         return f"ilaplace({texto_lineal(F)}, {texto_lineal(s)}, {texto_lineal(t)})"
+    if isinstance(expr, sympy.Limit):
+        fn, var, punto = expr.args[:3]
+        dir_ = str(expr.args[3]) if len(expr.args) > 3 else "+-"
+        sufijo = "+" if dir_ == "+" else ("-" if dir_ == "-" else "")
+        return f"lim({texto_lineal(fn)}, {texto_lineal(var)}, {texto_lineal(punto)}{sufijo})"
+    if isinstance(expr, sympy.Derivative):
+        fn = expr.expr
+        var, orden = expr.variable_count[0] if expr.variable_count else (sympy.Symbol("x"), 1)
+        n = int(orden)
+        if isinstance(fn, AppliedUndef):
+            return f"{fn.func.__name__}{chr(39) * n}"
+        if n == 1:
+            return f"diff({texto_lineal(fn)}, {texto_lineal(var)})"
+        return f"diff({texto_lineal(fn)}, {texto_lineal(var)}, {n})"
+    if isinstance(expr, sympy.Integral):
+        fn = expr.function
+        limites = expr.limits[0]
+        if len(limites) == 3:
+            return f"int({texto_lineal(fn)}, {texto_lineal(limites[0])}, {texto_lineal(limites[1])}, {texto_lineal(limites[2])})"
+        return f"int({texto_lineal(fn)}, {texto_lineal(limites[0])})"
+    if isinstance(expr, sympy.Sum):
+        fn = expr.function
+        var, inf, sup = expr.limits[0]
+        return f"sum({texto_lineal(fn)}, {texto_lineal(var)}, {texto_lineal(inf)}, {texto_lineal(sup)})"
+    if isinstance(expr, sympy.Product):
+        fn = expr.function
+        var, inf, sup = expr.limits[0]
+        return f"prod({texto_lineal(fn)}, {texto_lineal(var)}, {texto_lineal(inf)}, {texto_lineal(sup)})"
     if isinstance(expr, sympy.Eq):
         return f"{texto_lineal(expr.lhs)} = {texto_lineal(expr.rhs)}"
     if isinstance(expr, sympy.Le):
@@ -92,6 +120,12 @@ def texto_lineal(expr: Any) -> str:
         return f"{texto_lineal(expr.lhs)} > {texto_lineal(expr.rhs)}"
     if isinstance(expr, sympy.Ne):
         return f"{texto_lineal(expr.lhs)} != {texto_lineal(expr.rhs)}"
+    datos_raiz = _es_raiz(expr)
+    if datos_raiz is not None:
+        rad, ind = datos_raiz
+        if ind == 2:
+            return f"sqrt({texto_lineal(rad)})"
+        return f"raiz({texto_lineal(rad)}, {texto_lineal(ind)})"
     return str(expr).replace("**", "^")
 
 
@@ -452,8 +486,8 @@ def verbalizar_objeto(expr: Any, modo: str = LECTURA_DETALLADA) -> str:
         if factores and factores[0] == -1:
             resto = sympy.Mul(*factores[1:], evaluate=False) if len(factores) > 2 else factores[1]
             return tr("menos {expr}", expr=verbalizar_objeto(resto, modo))
-        if factores and isinstance(factores[0], sympy.Integer) and factores[0] < 0:
-            positivo = sympy.Mul(abs(int(factores[0])), *factores[1:], evaluate=False)
+        if factores and isinstance(factores[0], (sympy.Integer, sympy.Float, sympy.Rational)) and factores[0] < 0:
+            positivo = sympy.Mul(-factores[0], *factores[1:], evaluate=False)
             return tr("menos {expr}", expr=verbalizar_objeto(positivo, modo))
 
         partes = []
@@ -480,15 +514,13 @@ def verbalizar_objeto(expr: Any, modo: str = LECTURA_DETALLADA) -> str:
 
 
 def _extraer_negativo(termino: Any) -> Optional[Any]:
-    if isinstance(termino, (sympy.Integer, sympy.Float)) and termino < 0:
-        return -termino
-    if isinstance(termino, sympy.Rational) and termino < 0:
+    if isinstance(termino, (sympy.Integer, sympy.Float, sympy.Rational)) and termino < 0:
         return -termino
     if isinstance(termino, sympy.Mul) and termino.args:
         primero = termino.args[0]
         if primero == -1:
             return sympy.Mul(*termino.args[1:], evaluate=False) if len(termino.args) > 2 else termino.args[1]
-        if isinstance(primero, (sympy.Integer, sympy.Rational)) and primero < 0:
+        if isinstance(primero, (sympy.Integer, sympy.Float, sympy.Rational)) and primero < 0:
             return sympy.Mul(-primero, *termino.args[1:], evaluate=False)
     return None
 
@@ -524,6 +556,8 @@ def _etiqueta_por_tipo(expr: Any) -> str:
         return tr("Derivada")
     if isinstance(expr, sympy.Integral):
         return tr("Integral definida") if len(expr.limits[0]) == 3 else tr("Integral indefinida")
+    if isinstance(expr, EvaluacionBarrow):
+        return tr("Evaluación de Barrow")
     if isinstance(expr, sympy.Sum):
         return tr("Sumatoria")
     if isinstance(expr, sympy.Product):
@@ -593,6 +627,16 @@ def _construir_nodo(expr: Any, etiqueta: str) -> NodoEstructura:
             hijos_int.append(_construir_nodo(limites[1], tr("Límite inferior")))
             hijos_int.append(_construir_nodo(limites[2], tr("Límite superior")))
         return NodoEstructura(etiqueta, lin, lec, tuple(hijos_int))
+
+    if isinstance(expr, EvaluacionBarrow):
+        f, x, a, b = expr.args
+        hijos_bar = (
+            _construir_nodo(f, tr("Función")),
+            _construir_nodo(x, tr("Variable de integración")),
+            _construir_nodo(a, tr("Límite inferior")),
+            _construir_nodo(b, tr("Límite superior")),
+        )
+        return NodoEstructura(etiqueta, lin, lec, hijos_bar)
 
     if isinstance(expr, (sympy.Sum, sympy.Product)):
         fn = expr.function

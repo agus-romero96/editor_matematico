@@ -178,6 +178,36 @@ def verificar_par(anterior: BloqueDocumento, actual: BloqueDocumento) -> Resulta
     if isinstance(obj_ant, list) or isinstance(obj_act, list):
         ecs_ant = obj_ant if isinstance(obj_ant, list) else [obj_ant]
         ecs_act = obj_act if isinstance(obj_act, list) else [obj_act]
+        edos_ant = [e for e in ecs_ant if _es_edo(e)]
+        if edos_ant and len(ecs_act) == 1 and isinstance(ecs_act[0], sympy.Eq) and not _es_edo(ecs_act[0]):
+            ver_edo = _verificar_solucion_edo(edos_ant[0], ecs_act[0])
+            if ver_edo is not None and not ver_edo.es_valido:
+                return ver_edo
+            condiciones = [e for e in ecs_ant if not _es_edo(e) and isinstance(e, sympy.Eq)]
+            if ver_edo is not None and condiciones:
+                sol_eq = ecs_act[0]
+                derivs = [d for d in edos_ant[0].atoms(sympy.Derivative) if isinstance(d.expr, AppliedUndef)]
+                y_fn = derivs[0].expr
+                x_sym = y_fn.args[0]
+                simbolo_y = _PARSER.simbolo(y_fn.func.__name__)
+                expr_y = sol_eq.rhs if sol_eq.lhs == simbolo_y else (sol_eq.lhs if sol_eq.rhs == simbolo_y else None)
+                if expr_y is not None:
+                    for cond in condiciones:
+                        aplicadas = list(cond.lhs.atoms(AppliedUndef))
+                        if aplicadas:
+                            pto = aplicadas[0].args[0]
+                            val_esp = cond.rhs
+                            val_calc = sympy.simplify(expr_y.subs(x_sym, pto) - val_esp)
+                            if val_calc != 0:
+                                return ResultadoVerificacion(
+                                    False,
+                                    tr("Atención: la función satisface la ecuación diferencial, pero no cumple la condición inicial {cond}.",
+                                       cond=texto_lineal(cond)),
+                                )
+                return ver_edo
+            if ver_edo is not None:
+                return ver_edo
+
         if all(isinstance(e, sympy.Eq) for e in ecs_ant) and all(isinstance(e, sympy.Eq) for e in ecs_act):
             vars_todas = sorted(
                 set().union(*(e.free_symbols for e in ecs_ant + ecs_act)),

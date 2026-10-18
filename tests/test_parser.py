@@ -88,6 +88,25 @@ class TestParserMatematico(unittest.TestCase):
                     self.p.parsear(entrada)
                 self.assertIn(sug, str(ctx.exception))
 
+    def test_regresiones_edo_limites_y_matrices(self):
+        # 'sqrt' y 'cot' contienen 't', pero la variable independiente por defecto debe seguir siendo 'x'
+        edo_sqrt = self.p.parsear("y' = sqrt(y)")
+        derivs = list(edo_sqrt.atoms(sp.Derivative))
+        self.assertEqual(derivs[0].variables[0], self.x)
+
+        # Límite lateral donde el primer argumento contiene comas
+        lim_raiz = self.p.parsear("lim(raiz(x, 3), x, 0+)")
+        self.assertIsInstance(lim_raiz, sp.Limit)
+        self.assertEqual(str(lim_raiz.args[3]), "+")
+
+        # Orden discordante en notación de Leibniz debe fallar
+        with self.assertRaises(ValueError):
+            self.p.parsear("d2y/dx3 = 0")
+
+        # Matriz cuyas celdas contienen funciones con comas
+        mat = self.p.parsear_matriz("raiz(8, 3), 1\n0, log(100, 10)")
+        self.assertEqual(mat.shape, (2, 2))
+
 
 if __name__ == "__main__":
     unittest.main()

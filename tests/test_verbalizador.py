@@ -58,6 +58,16 @@ class TestVerbalizadorEInspector(unittest.TestCase):
         integrando = arbol.hijos[0]
         self.assertEqual([h.etiqueta for h in integrando.hijos], ["Numerador", "Denominador"])
 
+    def test_decimales_negativos_y_texto_lineal_reparseable(self):
+        lec = verbalizador.verbalizar("x - 2.5*y")
+        self.assertNotIn("más menos", lec)
+        self.assertIn("menos 2.5 por y", lec)
+
+        for expr in ["diff(x^3, x, 2)", "int(x^2, x, 0, 1)", "lim(1/x, x, 0+)", "raiz(x + 1, 3)", "y'' + y = 0"]:
+            nodo = verbalizador.inspeccionar(expr)
+            reparseado = verbalizador._PARSER.parsear(nodo.expresion)
+            self.assertIsNotNone(reparseado)
+
 
 if __name__ == "__main__":
     unittest.main()
