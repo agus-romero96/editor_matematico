@@ -118,7 +118,7 @@ def _separar_fraccion_sin_evaluar(expr: Any):
     if isinstance(expr, sympy.Pow) and expr.exp == -1:
         return sympy.Integer(1), expr.base
     if isinstance(expr, sympy.Pow) and isinstance(expr.exp, sympy.Number) and expr.exp < 0:
-        return sympy.Integer(1), sympy.Pow(expr.base, -expr.exp, evaluate=False)
+        return sympy.Integer(1), sympy.Pow(arg_base := expr.base, -expr.exp, evaluate=False)
     if not isinstance(expr, sympy.Mul):
         return expr, sympy.Integer(1)
 

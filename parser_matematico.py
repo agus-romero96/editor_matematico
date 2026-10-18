@@ -259,7 +259,6 @@ class ParserMatematico:
             return f" {clave} "
 
         txt_proc = _PATRON_DY_DX.sub(_reemplazar_leibniz, txt)
-
         indep_defecto = indep_forzada or ("t" if ("t" in txt_proc and "x" not in txt_proc) else "x")
 
         def _reemplazar_prima(m: re.Match) -> str:
