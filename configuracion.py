@@ -60,7 +60,8 @@ def guardar(clave: str, valor: Any) -> None:
     """Guarda una preferencia conservando las demás. Si no se puede, no hace nada."""
     ruta = ruta_configuracion()
     try:
-        datos = _leer_archivo()\n        datos[clave] = valor
+        datos = _leer_archivo()
+        datos[clave] = valor
         os.makedirs(os.path.dirname(ruta), exist_ok=True)
         temporal = ruta + ".tmp"
         with open(temporal, "w", encoding="utf-8") as f:

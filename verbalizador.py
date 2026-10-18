@@ -1,5 +1,21 @@
 """
 Verbalizador matemático e Inspector Estructural para lectores de pantalla (NVDA / JAWS).
+
+Resuelve el problema central de los editores visuales (como Word o EDICO), donde el
+usuario ciego pierde el contexto de si el cursor está dentro de un numerador, un
+denominador, una raíz, un exponente o los límites de una integral:
+
+1. `verbalizar(entrada, modo)`: convierte cualquier expresión, ecuación, inecuación,
+   límite, derivada, integral, sumatoria, ecuación diferencial, transformada de Laplace,
+   matriz o conjunto en una frase clara en español o inglés, sin símbolos mudos:
+   - Modo `"detallada"` (por defecto): anuncia inicio y fin de fracciones compuestas,
+     raíces, potencias y argumentos para eliminar toda ambigüedad estructural.
+   - Modo `"breve"`: lectura fluida y concisa para repasar un desarrollo rápido.
+
+2. `inspeccionar(entrada) -> NodoEstructura`: descompone cualquier fórmula o bloque en
+   un árbol navegable con las flechas del teclado, donde cada nodo indica su papel
+   estructural ("Numerador", "Denominador", "Límite inferior", "Integrando",
+   "Fila 2, Columna 1", etc.), su expresión lineal y su lectura verbalizada.
 """
 from __future__ import annotations
 
@@ -28,15 +44,17 @@ class NodoEstructura:
     """
     Un nodo del árbol estructural de una expresión matemática para el Inspector (F2).
     """
-    etiqueta: str
-    expresion: str
-    lectura: str
+    etiqueta: str                              # Papel estructural ("Numerador", "Exponente", "Lado izquierdo"...)
+    expresion: str                             # Representación lineal limpia (con ^ en vez de **)
+    lectura: str                               # Lectura en voz natural para el lector de pantalla
     hijos: Tuple["NodoEstructura", ...] = field(default_factory=tuple)
 
     def texto_nodo(self) -> str:
+        """Texto que anuncia el lector de pantalla al situarse en este nodo del árbol."""
         return f"{self.etiqueta}: {self.lectura} ({self.expresion})"
 
     def a_lineas(self, nivel: int = 0) -> List[str]:
+        """Vuelca el árbol completo como texto indentado para copia o revisión lineal."""
         prefijo = "  " * nivel + ("- " if nivel > 0 else "")
         lineas = [f"{prefijo}{self.texto_nodo()}"]
         for hijo in self.hijos:

@@ -32,6 +32,8 @@ from sympy.parsing.sympy_parser import (
 
 from i18n import tr
 
+# Funciones conocidas ordenadas de más larga a más corta para evitar partir nombres
+# como "xsin(x)" en "x*s*i*n*x" y proponer correcciones claras.
 FUNCIONES_CONOCIDAS = (
     "heaviside", "factorial", "integral", "derivada", "producto",
     "ilaplace", "laplace", "derivar",
@@ -42,10 +44,12 @@ FUNCIONES_CONOCIDAS = (
     "ln",
 )
 
+# Funciones que se aceptan en una ecuación diferencial (como y(x), x(t), u(x))
 FUNCIONES_EDO_PERMITIDAS = {"y", "x", "u", "v", "z", "f", "g", "r", "s", "p", "q"}
 
 
 def _contiene_funcion(nombre: str) -> Optional[Tuple[str, str, str]]:
+    """Devuelve (antes, funcion, despues) si el nombre contiene una función conocida."""
     for f in FUNCIONES_CONOCIDAS:
         i = nombre.find(f)
         if i != -1:
@@ -54,11 +58,16 @@ def _contiene_funcion(nombre: str) -> Optional[Tuple[str, str, str]]:
 
 
 def _se_puede_partir(nombre: str) -> bool:
+    """
+    Decide si un identificador de varias letras se interpreta como producto (xy -> x*y).
+    No parte nombres que contienen funciones conocidas ni marcadores internos de derivadas.
+    """
     if nombre.startswith("deriv_") or _contiene_funcion(nombre):
         return False
     return _token_splittable(nombre)
 
 
+# Constructores simbólicos sin evaluar para el editor
 class TransformadaLaplace(sympy.Function):
     """Representación simbólica sin evaluar de L{f(t)}(s)."""
     pass
@@ -84,6 +93,15 @@ _PATRON_PRIMA = re.compile(r"\b([a-zA-Z])('+)")
 
 
 class ParserMatematico:
+    """
+    Parser matemático seguro, tolerante y pensado para lectores de pantalla.
+    - Conserva la estructura sin evaluar (`evaluate=False`) para que el editor muestre
+      y verbalice exactamente lo que el usuario escribió.
+    - Crea variables reales (`Symbol(..., real=True)`).
+    - Soporta ecuaciones, inecuaciones, límites, derivadas, integrales, sumatorias,
+      matrices y ecuaciones diferenciales.
+    """
+
     def __init__(self):
         self.transformations = standard_transformations + (
             convert_xor,
@@ -95,16 +113,20 @@ class ParserMatematico:
 
         self.contexto = {
             "Symbol": self.simbolo,
+            # Constantes
             "e": sympy.E,
             "pi": sympy.pi,
+            # Infinito
             "oo": sympy.oo,
             "inf": sympy.oo,
             "infinito": sympy.oo,
             "infinity": sympy.oo,
+            # Logaritmos y exponencial
             "log": sympy.log,
             "ln": sympy.log,
             "log10": lambda x: sympy.log(x, 10, evaluate=False),
             "exp": sympy.exp,
+            # Trigonometría e hiperbólicas
             "sin": sympy.sin,
             "sen": sympy.sin,
             "cos": sympy.cos,
@@ -124,12 +146,14 @@ class ParserMatematico:
             "asinh": sympy.asinh,
             "acosh": sympy.acosh,
             "atanh": sympy.atanh,
+            # Raíces, valor absoluto y factorial
             "sqrt": sympy.sqrt,
             "cbrt": lambda x: sympy.root(x, 3, evaluate=False),
             "root": lambda x, n=2: sympy.root(x, n, evaluate=False),
             "raiz": lambda x, n=2: sympy.root(x, n, evaluate=False),
             "abs": sympy.Abs,
             "factorial": sympy.factorial,
+            # Cálculo: límites, derivadas, integrales, sumatorias, productorias
             "lim": self._construir_limite,
             "diff": self._construir_derivada,
             "derivar": self._construir_derivada,
@@ -141,12 +165,15 @@ class ParserMatematico:
             "suma": self._construir_sumatoria,
             "prod": self._construir_productoria,
             "producto": self._construir_productoria,
+            # Ecuaciones diferenciales y Laplace
             "heaviside": sympy.Heaviside,
             "dirac": sympy.DiracDelta,
             "laplace": self._construir_laplace,
             "ilaplace": self._construir_ilaplace,
+            # Matrices y determinantes
             "matrix": sympy.Matrix,
             "det": lambda m: DeterminanteSimbolico(sympy.Matrix(m) if isinstance(m, list) else m),
+            # Conjuntos e intervalos
             "interval": sympy.Interval,
             "intervalo": sympy.Interval,
             "union": sympy.Union,
@@ -156,6 +183,7 @@ class ParserMatematico:
 
     @staticmethod
     def simbolo(nombre: str) -> sympy.Symbol:
+        """Crea una variable real con el mismo criterio que el parser (minúsculas, sin espacios)."""
         return sympy.Symbol(str(nombre).strip().lower(), real=True)
 
     def _construir_limite(self, expr: Any, var: Any = None, tendencia: Any = 0, direccion: Any = "+-"):
@@ -212,7 +240,7 @@ class ParserMatematico:
         t = self.simbolo(var_destino) if var_destino is not None else self.simbolo("t")
         return TransformadaInversaLaplace(expr, s, t)
 
-    def _preprocesar_derivadas(self, txt: str) -> Tuple[str, dict]:
+    def _preprocesar_derivadas(self, txt: str, indep_forzada: Optional[str] = None) -> Tuple[str, dict]:
         locales_extra = {}
 
         def _reemplazar_leibniz(m: re.Match) -> str:
@@ -231,7 +259,8 @@ class ParserMatematico:
             return f" {clave} "
 
         txt_proc = _PATRON_DY_DX.sub(_reemplazar_leibniz, txt)
-        indep_defecto = "t" if ("t" in txt_proc and "x" not in txt_proc) else "x"
+
+        indep_defecto = indep_forzada or ("t" if ("t" in txt_proc and "x" not in txt_proc) else "x")
 
         def _reemplazar_prima(m: re.Match) -> str:
             dep = m.group(1).lower()
@@ -267,8 +296,9 @@ class ParserMatematico:
             izq_txt, op, der_txt = relacion
             if not izq_txt.strip() or not der_txt.strip():
                 raise ValueError(tr("Falta uno de los dos lados de la relación '{op}'.", op=op))
-            izq = self._parsear_expresion_simple(izq_txt)
-            der = self._parsear_expresion_simple(der_txt)
+            indep = "t" if ("t" in texto_limpio.lower() and "x" not in texto_limpio.lower()) else "x"
+            izq = self._parsear_expresion_simple(izq_txt, indep_forzada=indep)
+            der = self._parsear_expresion_simple(der_txt, indep_forzada=indep)
             constructores = {
                 "=": sympy.Eq,
                 "==": sympy.Eq,
@@ -285,7 +315,7 @@ class ParserMatematico:
 
         return self._parsear_expresion_simple(texto_limpio)
 
-    def _parsear_expresion_simple(self, expresion: str) -> Any:
+    def _parsear_expresion_simple(self, expresion: str, indep_forzada: Optional[str] = None) -> Any:
         txt = expresion.strip()
         txt = re.sub(
             r"\blim\s*\(([^,]+),\s*([^,]+),\s*([+-]?\d+(?:\.\d+)?|\w+)\s*([+-])\s*\)",
@@ -294,7 +324,7 @@ class ParserMatematico:
             flags=re.IGNORECASE,
         )
         txt_min = txt.lower()
-        txt_proc, locales_extra = self._preprocesar_derivadas(txt_min)
+        txt_proc, locales_extra = self._preprocesar_derivadas(txt_min, indep_forzada=indep_forzada)
         contexto_actual = {**self.contexto, **locales_extra}
 
         try:
