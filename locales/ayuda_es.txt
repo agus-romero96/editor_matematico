@@ -1,0 +1,64 @@
+MANUAL DE USUARIO: EDITOR MATEMÁTICO ACCESIBLE 1.0.0
+====================================================
+
+1. PROPÓSITO
+   El Editor Matemático Accesible permite redactar, explorar, verificar y exportar
+   desarrollos matemáticos paso a paso usando un lector de pantalla (NVDA o JAWS),
+   sin lidiar con cursores visuales ambiguos ni códigos crípticos.
+
+2. CÓMO FUNCIONA EL DOCUMENTO
+   Un documento se compone de una lista ordenada de PASOS (bloques):
+   - Texto o nota: títulos, enunciados o explicaciones del estudiante.
+   - Fórmula o paso matemático: expresiones, ecuaciones, inecuaciones, límites,
+     derivadas, integrales, sumatorias, ecuaciones diferenciales o Laplace.
+   - Sistema de ecuaciones / PVI: varias ecuaciones o una EDO con condiciones iniciales.
+   - Matriz o determinante: escrito por filas (una fila por línea).
+
+3. ATAJOS PRINCIPALES DE NAVEGACIÓN Y EDICIÓN
+   [Ctrl + Enter]     : Agregar el paso escrito a la lista del documento.
+   [Ctrl + U]         : Actualizar el paso seleccionado con lo escrito abajo.
+   [Alt + Flecha Arr] : Subir el paso seleccionado una posición.
+   [Alt + Flecha Abj] : Bajar el paso seleccionado una posición.
+   [Suprimir]         : Eliminar el paso seleccionado.
+   [F2]               : INSPECCIONAR ESTRUCTURA (abre un árbol navegable con flechas
+                        para revisar numerador, denominador, índice, radicando,
+                        exponente, límites de integración o celdas de matriz).
+   [F5]               : VERIFICAR PASO ACTUAL respecto al paso matemático anterior.
+   [Ctrl + Mayús + V] : Verificar todos los pasos matemáticos del documento.
+   [Ctrl + Mayús + D] : Alternar entre lectura detallada y lectura breve.
+
+4. ATAJOS DE LOS ASISTENTES GUIADOS (SIN ERRORES DE PARÉNTESIS)
+   Aritmética y Raíces:
+   - [Ctrl + Mayús + F] : Insertar fracción (pide numerador y denominador).
+   - [Ctrl + Mayús + P] : Insertar potencia (pide base y exponente).
+   - [Ctrl + Mayús + Q] : Insertar raíz cuadrada o de índice n.
+
+   Álgebra y Matrices:
+   - [Ctrl + R]         : Insertar ecuación o inecuación (=, <, <=, >, >=, !=).
+   - [Ctrl + G]         : Insertar sistema de ecuaciones.
+   - [Ctrl + M]         : Insertar matriz por filas y columnas.
+   - [Ctrl + K]         : Insertar determinante.
+
+   Cálculo:
+   - [Ctrl + L]         : Insertar límite (incluye laterales 0+, 0- e infinito oo).
+   - [Ctrl + D]         : Insertar derivada de primer orden o de orden N.
+   - [Ctrl + I]         : Insertar integral indefinida.
+   - [Ctrl + Mayús + I] : Insertar integral definida.
+   - [Ctrl + Mayús + B] : Insertar evaluación de Barrow [F(x)]_a^b.
+   - [Ctrl + Mayús + T] : Insertar sumatoria o serie de Taylor.
+
+   Ecuaciones Diferenciales y Laplace:
+   - [Ctrl + Mayús + R] : Insertar ecuación diferencial (y', y'', dy/dx) o PVI.
+   - [Ctrl + Mayús + L] : Insertar transformada de Laplace.
+   - [Ctrl + Mayús + U] : Insertar transformada inversa de Laplace.
+
+5. ARCHIVOS Y EXPORTACIÓN
+   - [Ctrl + N]         : Nuevo documento.
+   - [Ctrl + O]         : Abrir documento (.ema).
+   - [Ctrl + S]         : Guardar documento (.ema).
+   - [Ctrl + E]         : Exportar a Word (.docx con ecuaciones nativas OMML),
+                          HTML con fórmulas MathML accesibles, LaTeX (.tex),
+                          Markdown (.md) o Texto plano accesible (.txt).
+   - [Ctrl + Mayús + C] : Copiar lectura accesible del paso actual.
+   - [Ctrl + Alt + L]   : Copiar código LaTeX del paso actual.
+   - [Ctrl + Alt + M]   : Copiar código MathML del paso actual.

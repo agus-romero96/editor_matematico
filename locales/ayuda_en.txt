@@ -1,0 +1,64 @@
+USER MANUAL: ACCESSIBLE MATH EDITOR 1.0.0
+=========================================
+
+1. PURPOSE
+   The Accessible Math Editor lets you write, explore, verify, and export
+   step-by-step mathematical work using a screen reader (NVDA or JAWS),
+   without ambiguous visual cursors or cryptic linear codes.
+
+2. HOW THE DOCUMENT WORKS
+   A document is an ordered list of STEPS (blocks):
+   - Text or note: headings, problem statements, or explanations.
+   - Formula or math step: expressions, equations, inequalities, limits,
+     derivatives, integrals, summations, differential equations, or Laplace.
+   - System of equations / IVP: multiple equations or an ODE with initial conditions.
+   - Matrix or determinant: entered row by row (one row per line).
+
+3. MAIN NAVIGATION AND EDITING SHORTCUTS
+   [Ctrl + Enter]     : Add the current step to the document list.
+   [Ctrl + U]         : Update the selected step with the current input.
+   [Alt + Up Arrow]   : Move the selected step up.
+   [Alt + Down Arrow] : Move the selected step down.
+   [Delete]           : Delete the selected step.
+   [F2]               : INSPECT STRUCTURE (opens a navigable tree to explore
+                        numerator, denominator, root index, radicand, exponent,
+                        integration bounds, or matrix cells with arrow keys).
+   [F5]               : VERIFY CURRENT STEP against the previous math step.
+   [Ctrl + Shift + V] : Verify all mathematical steps in the document.
+   [Ctrl + Shift + D] : Toggle between detailed and brief speech reading.
+
+4. GUIDED ASSISTANT SHORTCUTS (ZERO MISMATCHED PARENTHESES)
+   Arithmetic and Roots:
+   - [Ctrl + Shift + F] : Insert fraction (prompts for numerator and denominator).
+   - [Ctrl + Shift + P] : Insert power (prompts for base and exponent).
+   - [Ctrl + Shift + Q] : Insert square root or n-th root.
+
+   Algebra and Matrices:
+   - [Ctrl + R]         : Insert equation or inequality (=, <, <=, >, >=, !=).
+   - [Ctrl + G]         : Insert system of equations.
+   - [Ctrl + M]         : Insert matrix by rows and columns.
+   - [Ctrl + K]         : Insert determinant.
+
+   Calculus:
+   - [Ctrl + L]         : Insert limit (including one-sided 0+, 0- and infinity oo).
+   - [Ctrl + D]         : Insert first-order or N-th order derivative.
+   - [Ctrl + I]         : Insert indefinite integral.
+   - [Ctrl + Shift + I] : Insert definite integral.
+   - [Ctrl + Shift + B] : Insert Barrow evaluation [F(x)]_a^b.
+   - [Ctrl + Shift + T] : Insert summation or Taylor series.
+
+   Differential Equations and Laplace:
+   - [Ctrl + Shift + R] : Insert differential equation (y', y'', dy/dx) or IVP.
+   - [Ctrl + Shift + L] : Insert Laplace transform.
+   - [Ctrl + Shift + U] : Insert inverse Laplace transform.
+
+5. FILES AND EXPORT
+   - [Ctrl + N]         : New document.
+   - [Ctrl + O]         : Open document (.ema).
+   - [Ctrl + S]         : Save document (.ema).
+   - [Ctrl + E]         : Export to Word (.docx with native OMML equations),
+                          HTML with accessible MathML formulas, LaTeX (.tex),
+                          Markdown (.md), or accessible plain text (.txt).
+   - [Ctrl + Shift + C] : Copy accessible reading of the current step.
+   - [Ctrl + Alt + L]   : Copy LaTeX code of the current step.
+   - [Ctrl + Alt + M]   : Copy MathML code of the current step.

@@ -72,6 +72,7 @@ def _escapar_latex(texto: str) -> str:
 
 
 def latex_de_objeto(obj: Any) -> str:
+    """Convierte un objeto SymPy (incluidos constructores propios del editor) a LaTeX."""
     if isinstance(obj, DeterminanteSimbolico) and isinstance(obj.args[0], sympy.MatrixBase):
         mat = obj.args[0]
         filas = [r" & ".join(latex_de_objeto(mat[i, j]) for j in range(mat.cols)) for i in range(mat.rows)]
@@ -100,6 +101,7 @@ def latex_de_objeto(obj: Any) -> str:
 
 
 def latex_bloque(bloque: BloqueDocumento) -> str:
+    """Devuelve la representación LaTeX de un bloque matemático."""
     if bloque.tipo == TIPO_TEXTO:
         return _escapar_latex(bloque.contenido)
     obj = bloque.objeto_sympy()
@@ -110,6 +112,7 @@ def latex_bloque(bloque: BloqueDocumento) -> str:
 
 
 def _sin_mfenced(mathml: str) -> str:
+    """Sustituye `<mfenced>` por `<mrow><mo>(</mo>...<mo>)</mo></mrow>` (MathML Core)."""
     pila: List[str] = []
 
     def reemplazar(m: re.Match) -> str:
@@ -125,6 +128,7 @@ def _sin_mfenced(mathml: str) -> str:
 
 
 def _entidades_numericas(marcado: str) -> str:
+    """Convierte entidades con nombre (&pi;) a numéricas (&#x3C0;) para que el MathML sea XML válido."""
     def convertir(m: re.Match) -> str:
         caracteres = html.unescape(m.group(0))
         if caracteres == m.group(0):
@@ -135,6 +139,7 @@ def _entidades_numericas(marcado: str) -> str:
 
 
 def _escapar_comparadores_en_mo(marcado: str) -> str:
+    """Escapa `<` y `>` crudos que SymPy deja dentro de `<mo><</mo>` en desigualdades estrictas."""
     return marcado.replace("<mo><</mo>", "<mo>&lt;</mo>").replace("<mo>></mo>", "<mo>&gt;</mo>")
 
 
@@ -167,6 +172,7 @@ def _mathml_interno(obj: Any) -> str:
 
 
 def mathml_bloque(bloque: BloqueDocumento) -> str:
+    """Genera un elemento `<math ...>` completo y válido como XML para un bloque."""
     if bloque.tipo == TIPO_TEXTO:
         return f"<p>{html.escape(bloque.contenido)}</p>"
     obj = bloque.objeto_sympy()

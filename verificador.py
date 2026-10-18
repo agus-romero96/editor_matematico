@@ -43,6 +43,7 @@ class ResultadoVerificacion:
 
 
 def _evaluar_construcciones_editor(expr: Any) -> Any:
+    """Evalúa constructores propios del editor (Barrow, Laplace, DeterminanteSimbolico) y luego doit()."""
     if not isinstance(expr, sympy.Basic):
         return expr
     expr = expr.replace(
@@ -65,6 +66,7 @@ def _evaluar_construcciones_editor(expr: Any) -> Any:
 
 
 def _quitar_constante_integracion(expr: Any) -> Any:
+    """Elimina una constante aditiva C o C1 al comprobar una primitiva."""
     if not isinstance(expr, sympy.Basic):
         return expr
     c_syms = {s for s in expr.free_symbols if s.name in ("c", "c1", "c2", "k")}
@@ -74,6 +76,7 @@ def _quitar_constante_integracion(expr: Any) -> Any:
 
 
 def _es_edo(expr: Any) -> bool:
+    """True si la relación contiene derivadas de una función indefinida como y(x)."""
     if not isinstance(expr, sympy.Eq):
         return False
     for d in expr.atoms(sympy.Derivative):
@@ -83,6 +86,7 @@ def _es_edo(expr: Any) -> bool:
 
 
 def _verificar_solucion_edo(edo_eq: sympy.Eq, paso_sol: sympy.Eq) -> Optional[ResultadoVerificacion]:
+    """Comprueba si `paso_sol` (por ejemplo `y = C*exp(x^2)`) es solución de `edo_eq`."""
     derivs = [d for d in edo_eq.atoms(sympy.Derivative) if isinstance(d.expr, AppliedUndef)]
     if not derivs:
         return None
@@ -120,6 +124,7 @@ def _verificar_solucion_edo(edo_eq: sympy.Eq, paso_sol: sympy.Eq) -> Optional[Re
 
 
 def verificar_par(anterior: BloqueDocumento, actual: BloqueDocumento) -> ResultadoVerificacion:
+    """Comprueba si `actual` es un paso matemáticamente válido a partir de `anterior`."""
     ok_ant, err_ant = anterior.es_valido()
     if not ok_ant:
         return ResultadoVerificacion(False, tr("El paso anterior tiene un error de sintaxis: {error}", error=err_ant))
@@ -291,6 +296,7 @@ def verificar_par(anterior: BloqueDocumento, actual: BloqueDocumento) -> Resulta
 
 
 def _expresiones_equivalentes(a: Any, b: Any) -> bool:
+    """True si dos expresiones SymPy representan el mismo valor matemático."""
     try:
         va = _quitar_constante_integracion(_evaluar_construcciones_editor(a))
         vb = _quitar_constante_integracion(_evaluar_construcciones_editor(b))
